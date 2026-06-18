@@ -1,0 +1,20 @@
+# for the calculation and handal the table data 
+numpy 
+pandas 
+
+# Face-recognition
+dlib-bin
+# svm machine learning
+scikit-learn
+git+https://github.com/ageitgey/face_recognition_models
+# for database
+supabase
+# for generating  QR-Scane
+segno
+# handling with the image 
+pillow
+streamlit
+# to hash the password
+bcrypt
+
+
