@@ -46,9 +46,9 @@ def base_layout():
                 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
                 
                
-              /* #MainMenu,header,footer{
+               #MainMenu,header,footer{
                      visibility:hidden;
-                }*/
+                }
                 
                 
                 .block-container{
@@ -60,20 +60,19 @@ def base_layout():
                     font-size:2.5rem !important;
                     line-height:0.9 !important;
                     margin-bottom:0rem !important;
+                    color:#E0E3FF !important;
                    
                 }
                 
                 h2{
                     font-family:'Climate Crisis', sans-serif !important;
-                    font-size:2rem !important;
+                    font-size:1.8rem !important;
                     line-height:0.9 !important;
                     margin-bottom:0rem !important;
-                     color:black !important;
+                    color:#5865F2!important;
                 }
                 
-                h4{
-                     font-family:'Outfit',sans-serif !important;
-                }
+                
                 
                 button{
                       border-radius:1.5rem !important;
@@ -86,7 +85,7 @@ def base_layout():
                 
                 button[kind='secondary']{
                       border-radius:1.5rem !important;
-                      background:#EB459E !important;
+                      background:blue !important;
                       padding:10px 20px !important;
                       color:white !important;
                       borde:none important;
@@ -106,6 +105,67 @@ def base_layout():
                      transform:scale(1.05) !important;
                 }
                 
+
+/* Input Box */
+.stTextInput input{
+    background:#F5F5F5 !important;
+    color:#444 !important;
+    border:none !important;
+    border-radius:12px !important;
+    padding:14px !important;
+    font-size:16px !important;
+    box-shadow:none !important;
+    
+}
+
+/* Input Container */
+[data-baseweb="input"]{
+    border-radius:12px !important;
+    overflow:hidden !important;
+}
+
+/* Labels */
+.stTextInput label{
+    color:#444 !important;
+    font-size:15px !important;
+    font-weight:500 !important;
+}
+
+/* Divider */
+hr{
+    margin-top:2rem !important;
+    margin-bottom:2rem !important;
+}
+
+/* Primary Button */
+button[kind="primary"]{
+    background:#E63E9E !important;
+    color:white !important;
+    border:none !important;
+    border-radius:25px !important;
+    height:55px !important;
+    font-weight:600 !important;
+}
+
+/* Secondary Button */
+button[kind="secondary"]{
+    background:#5865F2 !important;
+    color:white !important;
+    border:none !important;
+    border-radius:25px !important;
+    height:55px !important;
+    font-weight:600 !important;
+}
+
+/* Hover */
+button:hover{
+    transform:scale(1.02);
+}
+
+/* Form Width */
+.block-container{
+    max-width:700px !important;
+}
                 </style>
                 
     """,unsafe_allow_html=True)
