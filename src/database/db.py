@@ -22,3 +22,14 @@ def teacher_login(username,password):
         if check_pass(password,teacher["password"]):
             return teacher
     return None;
+
+def get_all_students():
+     responce=supabase.table("student").select("*").execute()
+     return responce.data;
+
+
+def create_student(name,face_emb,voice_emb):
+    data={"name":name,"face_embedding":face_emb,"voice_embedding":voice_emb}
+    responce=supabase.table("student").insert(data).execute()
+    return responce.data;
+    
