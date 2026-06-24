@@ -8,7 +8,29 @@ def base_layout_home():
         .stApp {
             background: linear-gradient(135deg, #3b3fce 0%, #5865F2 40%, #8b5cf6 100%) !important;
             min-height: 100vh;
-            overflow: hidden;
+        }
+
+        /* Let the page scroll if content genuinely doesn't fit (small screens / high zoom),
+           but shrink spacing below so it fits on one screen at normal sizes. */
+        [data-testid="stMain"] {
+            overflow-y: auto !important;
+        }
+
+        .block-container {
+            padding-top: 1.2rem !important;
+            padding-bottom: 1rem !important;
+            max-width: 900px !important;
+        }
+
+        /* Shrink the logo/title block on the home screen so cards aren't pushed below the fold */
+        .stApp [data-testid="stImage"] img {
+            max-height: 9vh !important;
+            width: auto !important;
+        }
+
+        .stApp h1 {
+            font-size: clamp(1.8rem, 4vh, 2.6rem) !important;
+            margin: 0.4rem 0 !important;
         }
 
         .stApp::before {
@@ -43,9 +65,15 @@ def base_layout_home():
             -webkit-backdrop-filter: blur(20px) !important;
             border: 1px solid rgba(255,255,255,0.25) !important;
             border-radius: 2.5rem !important;
-            padding: 2.5rem !important;
+            padding: 1.5rem !important;
             box-shadow: 0 8px 32px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3) !important;
             transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+        }
+
+        .stApp div[data-testid="stColumn"] [data-testid="stImage"] img {
+            max-height: 18vh !important;
+            width: auto !important;
+            margin: 0 auto !important;
         }
 
         .stApp div[data-testid="stColumn"]:hover {
@@ -308,10 +336,9 @@ def base_layout():
            BUTTONS
         ══════════════════════════════════════ */
 
-        /* Hide the raw icon text that bleeds out of buttons */
+        /* Hide the raw icon glyph that bleeds out of buttons, without collapsing text */
         .stButton > button [data-testid="stIconMaterial"] {
-            font-size: 0 !important;
-            line-height: 0 !important;
+            display: none !important;
         }
 
         /* Base */
@@ -376,6 +403,7 @@ def base_layout():
         button[kind="tertiary"]:hover {
             box-shadow: 0 8px 24px rgba(0,0,0,0.35) !important;
         }
+
 
         </style>
     """, unsafe_allow_html=True)
