@@ -1,12 +1,19 @@
-import streamlit as st
 import numpy as np
-import face_recognition_models
 import dlib
+import face_recognition_models
+import streamlit as st
 from sklearn.svm import SVC
+
 from src.database.db import get_all_students
 
+RESEMBLANCE_THRESHOLD = 0.6
 
-@st.cache_resource  # this runs only one time because loading models is expensive
+
+# ---------------------------------------------------------------------------
+# Model loading
+# ---------------------------------------------------------------------------
+
+@st.cache_resource  # Runs only once — loading dlib models is expensive
 def load_dlib_models():
     detector = dlib.get_frontal_face_detector()
 
@@ -21,30 +28,32 @@ def load_dlib_models():
     return detector, sp, facerec
 
 
+# ---------------------------------------------------------------------------
+# Face embedding
+# ---------------------------------------------------------------------------
+
 def get_face_embedding(image_np):
     detector, sp, facerec = load_dlib_models()
 
     faces = detector(image_np, 1)
-
     embeddings = []
 
     for face in faces:
         shape = sp(image_np, face)
-        face_descriptor = facerec.compute_face_descriptor(
-            image_np,
-            shape,
-            1
-        )
-
-        embeddings.append(face_descriptor)
+        face_descriptor = facerec.compute_face_descriptor(image_np, shape, 1)
+        # Explicitly cast dlib.vector → numpy array for safe arithmetic later
+        embeddings.append(np.array(face_descriptor))
 
     return embeddings
 
 
+# ---------------------------------------------------------------------------
+# Classifier training
+# ---------------------------------------------------------------------------
+
 @st.cache_resource
 def get_train_model():
-    X = []
-    y = []
+    X, y = [], []
 
     student_db = get_all_students()
 
@@ -53,69 +62,103 @@ def get_train_model():
 
     for student in student_db:
         embedding = student.get("face_embedding")
-
         if embedding:
             X.append(np.array(embedding))
-            y.append(student.get("student_id"))
+            # Force int to avoid string/int mismatch from Supabase
+            y.append(int(student.get("student_id")))
 
     if len(X) == 0:
         return None
 
-    clf = SVC(
-        kernel="linear",
-        probability=True,
-        class_weight="balanced"
-    )
+    clf = SVC(kernel="linear", probability=True, class_weight="balanced")
 
     try:
         clf.fit(X, y)
-    except ValueError:
-        pass
+    except ValueError as e:
+        print(f"[face_pipeline] Classifier training failed: {e}")
+        return None
 
-    return {
-        "clf": clf,
-        "X": X,
-        "y": y
-    }
+    return {"clf": clf, "X": X, "y": y}
 
 
 def train_classifier():
-    st.cache_resource.clear()
+    # Only clear the classifier cache, NOT the dlib models cache
+    get_train_model.clear()
     model_data = get_train_model()
     return bool(model_data)
 
 
+# ---------------------------------------------------------------------------
+# Attendance prediction
+# ---------------------------------------------------------------------------
+
+def _best_match_distance(
+    X_train: list,
+    y_train: list,
+    predicted_id: int,
+    encoding: np.ndarray
+) -> float:
+    """
+    Return the smallest L2 distance between `encoding` and any stored
+    embedding that belongs to `predicted_id`.
+    """
+    candidate_embeddings = [
+        np.array(X_train[i])
+        for i, label in enumerate(y_train)
+        if label == predicted_id
+    ]
+
+    if not candidate_embeddings:
+        return float("inf")
+
+    distances = [np.linalg.norm(emb - encoding) for emb in candidate_embeddings]
+    return min(distances)
+
+
 def predict_attendance(class_image_np):
+    """
+    Returns:
+        detected_student  dict   {student_id: True} for confirmed matches
+        all_students      list   all student IDs known to the model
+        num_faces         int    number of faces found in the image
+        best_match_score  float  lowest distance score seen — use this to
+                                 decide if an unrecognized face is truly new
+                                 or just a poor match of a known person
+    """
     detected_student = {}
+    best_match_score = float("inf")
 
     encodings = get_face_embedding(class_image_np)
+    num_faces = len(encodings)
 
     model_data = get_train_model()
 
     if not model_data:
-        return detected_student, [], len(encodings)
+        return detected_student, [], num_faces, best_match_score
 
     clf = model_data["clf"]
     X_train = model_data["X"]
     y_train = model_data["y"]
 
-    all_students = sorted(list(set(y_train)))
+    all_students = sorted(set(y_train))
 
     for encoding in encodings:
+        encoding_np = np.array(encoding)
+
         if len(all_students) >= 2:
-            predicted_id = int(clf.predict([encoding])[0])
+            predicted_id = int(clf.predict([encoding_np])[0])
         else:
+            # Only one student enrolled — still verify by distance,
+            # don't blindly mark every face as that student
             predicted_id = int(all_students[0])
 
-        student_embedding = X_train[y_train.index(predicted_id)]
+        score = _best_match_distance(X_train, y_train, predicted_id, encoding_np)
 
-        best_match_score = np.linalg.norm(
-            student_embedding - encoding
-        )
+        # Track the best (lowest) score across all faces in the image
+        if score < best_match_score:
+            best_match_score = score
 
-        resemblance_threshold = 0.6
-
-        if best_match_score <= resemblance_threshold:
+        if score <= RESEMBLANCE_THRESHOLD:
             detected_student[predicted_id] = True
 
-    return detected_student, all_students, len(encodings)
+    return detected_student, all_students, num_faces, best_match_score
