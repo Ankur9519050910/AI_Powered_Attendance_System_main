@@ -13,6 +13,7 @@ from src.database.db import (
     create_teacher,
     get_teacher_subjects,
     teacher_login,
+    get_attendance_for_teacher
 )
 from src.components.subjects_cards import subject_card
 from src.components.share_subject_dialog import share_subject_dialog
@@ -22,10 +23,10 @@ from src.database.config import supabase
 from src.pipeline.face_pipeline import predict_attendance
 from src.components.attendance_result_dialog import attendance_result_dialog
 
-
-# ---------------------------------------------------------------------------
+from src.components.voice_dialog import voice_attendance_dialog
+  
 # Entry point
-# ---------------------------------------------------------------------------
+  
 
 def teacher_screen():
     base_layout_dashbord()
@@ -43,9 +44,9 @@ def teacher_screen():
             teacher_screen_register()
 
 
-# ---------------------------------------------------------------------------
+  
 # Dashboard
-# ---------------------------------------------------------------------------
+  
 
 def teacher_dashboard():
     teacher_data = st.session_state.teacher_data
@@ -97,9 +98,9 @@ def teacher_dashboard():
     footer_dashbord()
 
 
-# ---------------------------------------------------------------------------
+  
 # Tab: Take Attendance
-# ---------------------------------------------------------------------------
+  
 
 def teacher_tab_take_attendance():
     teacher_id = st.session_state.teacher_data.get("teacher_id")
@@ -219,13 +220,12 @@ def teacher_tab_take_attendance():
             width="stretch",
             icon=":material/mic:",
         ):
-            # voice_attendance_dialog()
-            pass
+            voice_attendance_dialog(selected_subject_id)
 
 
-# ---------------------------------------------------------------------------
+  
 # Tab: Manage Subjects
-# ---------------------------------------------------------------------------
+  
 
 def teacher_tab_manage_subjects():
     teacher_id = st.session_state.teacher_data["teacher_id"]
@@ -269,18 +269,62 @@ def teacher_tab_manage_subjects():
         st.info("No subjects found. Create one above.")
 
 
-# ---------------------------------------------------------------------------
+  
 # Tab: Attendance Records
-# ---------------------------------------------------------------------------
+  
 
 def teacher_tab_attendance_records():
     st.header("Attendance Records")
-    # TODO: implement attendance records view
+   
+    teacher_id=st.session_state.teacher_data['teacher_id']
+    record=get_attendance_for_teacher(teacher_id)
+    # st.write(record)  # DEBUG
+    if not record:
+        return
+    data = []
+
+    for r in record:
+        ts = r.get('timestamp')
+
+        data.append({
+            "ts_group": ts.split(".")[0] if ts else None,
+            "Time": datetime.fromisoformat(ts).strftime("%Y-%m-%d %I:%M %p") if ts else "N/A",
+            "Subject": r['subjects']['name'],
+            "Subject Code": r['subjects']['subject_code'],
+            "is_present": bool(r.get('is_present', False))
+        })
+
+    df = pd.DataFrame(data)
+
+    summary = (
+        df.groupby(['ts_group', 'Time', 'Subject', 'Subject Code'])
+        .agg(
+            Present_Count=('is_present', 'sum'),
+            Total_Count=('is_present', 'count')
+        )
+        .reset_index()
+    )
+    
+    summary['Attendance Stats'] = (
+    "✅ " + summary['Present_Count'].astype(str) + "/" +
+    summary['Total_Count'].astype(str) + " Students"
+    )
+
+    display_df = (
+        summary.sort_values(by='ts_group', ascending=False)
+            [['Time', 'Subject', 'Subject Code', 'Attendance Stats']]
+    )
+
+    st.dataframe(
+        display_df,
+        width="stretch",
+        hide_index=True
+    )
 
 
-# ---------------------------------------------------------------------------
+  
 # Auth helpers
-# ---------------------------------------------------------------------------
+  
 
 def register_teacher(teacher_username, teacher_name, teacher_pass, teacher_pass_confirm):
     if not teacher_name or not teacher_username or not teacher_pass:
@@ -314,9 +358,9 @@ def login_teacher(username, password):
     return False
 
 
-# ---------------------------------------------------------------------------
+  
 # Login screen
-# ---------------------------------------------------------------------------
+  
 
 def teacher_screen_login():
     c1, c2 = st.columns(2, gap="xxlarge", vertical_alignment="center")
@@ -354,9 +398,9 @@ def teacher_screen_login():
     footer_dashbord()
 
 
-# ---------------------------------------------------------------------------
+  
 # Registration screen
-# ---------------------------------------------------------------------------
+  
 
 def teacher_screen_register():
     c1, c2 = st.columns(2, gap="xxlarge", vertical_alignment="center")

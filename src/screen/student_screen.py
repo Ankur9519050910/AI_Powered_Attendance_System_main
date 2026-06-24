@@ -20,9 +20,9 @@ from src.components.enroll_dialog import enroll_dialog
 from src.components.subjects_cards import subject_card
 
 
-# ---------------------------------------------------------------------------
-# Dashboard
-# ---------------------------------------------------------------------------
+  
+# Dashboard (shown after login)
+  
 
 def student_dashboard():
     base_layout()
@@ -104,9 +104,9 @@ def student_dashboard():
     footer_dashbord()
 
 
-# ---------------------------------------------------------------------------
+  
 # Login screen
-# ---------------------------------------------------------------------------
+  
 
 def student_login_screen():
     base_layout_dashbord()
@@ -132,7 +132,6 @@ def student_login_screen():
         img = np.array(Image.open(photo_source))
 
         with st.spinner("AI is scanning..."):
-            # predict_attendance now returns 4 values including best_match_score
             detect, all_ids, num_faces, best_score = predict_attendance(img)
 
         if num_faces == 0:
@@ -145,29 +144,39 @@ def student_login_screen():
 
         else:
             if detect:
-                # ✅ Face confidently recognized
-                student_id = list(detect.keys())[0]
-                all_students = get_all_students()
-                student = next(
-                    (s for s in all_students if int(s["student_id"]) == student_id),
-                    None
-                )
-
-                if student:
-                    st.session_state.is_logged_in = True
-                    st.session_state.user_role = "student"
-                    st.session_state.student_data = student
+                # Use a tighter threshold for login than for general detection.
+                # This prevents a borderline match from logging in the wrong person.
+                if best_score > 0.45:
+                    st.warning(
+                        "Face detected but confidence is low. "
+                        "Please try better lighting or move closer."
+                    )
                     st.session_state.show_registration = False
-                    st.toast(f"Welcome back, {student['name']}!")
-                    time.sleep(1)
-                    st.rerun()
+
                 else:
-                    st.error("Student record not found. Please contact support.")
+                    # High confidence match — log the student in
+                    student_id = list(detect.keys())[0]
+                    all_students = get_all_students()
+                    student = next(
+                        (s for s in all_students if int(s["student_id"]) == student_id),
+                        None
+                    )
+
+                    if student:
+                        st.session_state.is_logged_in = True
+                        st.session_state.user_role = "student"
+                        st.session_state.student_data = student
+                        st.session_state.show_registration = False
+                        st.toast(f"Welcome back, {student['name']}!")
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        st.error("Student record not found. Please contact support.")
 
             elif best_score <= 0.5:
-                # ⚠️ Face looks very similar to a known student but just
-                # missed the threshold — bad lighting or angle, NOT a new person.
-                # Blocking registration here prevents duplicate account creation.
+                # Score is low meaning face is close to someone we know
+                # but just missed the threshold — bad lighting or angle.
+                # Block registration to prevent duplicate accounts.
                 st.warning(
                     "Your face looks familiar but couldn't be confirmed. "
                     "Try better lighting or move closer to the camera."
@@ -175,13 +184,14 @@ def student_login_screen():
                 st.session_state.show_registration = False
 
             else:
-                # ❓ Face looks nothing like anyone we know → genuinely new student
+                # Score is high meaning face looks nothing like anyone we know.
+                # This is genuinely a new student.
                 st.info("Face not recognized. You might be a new student — please register below.")
                 st.session_state.show_registration = True
 
-    # ---------------------------------------------------------------------------
+      
     # Registration form
-    # ---------------------------------------------------------------------------
+      
 
     if st.session_state.show_registration:
         with st.container(border=True):
@@ -213,11 +223,20 @@ def student_login_screen():
                             voice_emb = get_voice_embedding(audio_data) if audio_data else None
 
                             response = create_student(new_name, face_emb, voice_emb)
+
                             if response:
+                                # Train the classifier with the new student included
                                 train_classifier()
+
+                                # IMPORTANT: use response[0] directly from the DB
+                                # instead of running face recognition again.
+                                # This guarantees the correct student profile is
+                                # loaded even before the new model is fully cached.
+                                new_student = response[0]
+
                                 st.session_state.is_logged_in = True
                                 st.session_state.user_role = "student"
-                                st.session_state.student_data = response[0]
+                                st.session_state.student_data = new_student
                                 st.session_state.show_registration = False
                                 st.toast(f"Profile created! Hi, {new_name}!")
                                 time.sleep(1)
@@ -233,9 +252,9 @@ def student_login_screen():
     footer_dashbord()
 
 
-# ---------------------------------------------------------------------------
+  
 # Entry point
-# ---------------------------------------------------------------------------
+  
 
 def student_screen():
     if st.session_state.get("student_data"):

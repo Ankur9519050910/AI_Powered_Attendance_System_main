@@ -41,7 +41,7 @@ def get_face_embedding(image_np):
     for face in faces:
         shape = sp(image_np, face)
         face_descriptor = facerec.compute_face_descriptor(image_np, shape, 1)
-        # Explicitly cast dlib.vector → numpy array for safe arithmetic later
+        # Explicitly cast dlib.vector → numpy array for safe arithmetic
         embeddings.append(np.array(face_descriptor))
 
     return embeddings
@@ -70,13 +70,19 @@ def get_train_model():
     if len(X) == 0:
         return None
 
-    clf = SVC(kernel="linear", probability=True, class_weight="balanced")
+    clf = None  # stays None when only 1 student exists
 
-    try:
-        clf.fit(X, y)
-    except ValueError as e:
-        print(f"[face_pipeline] Classifier training failed: {e}")
-        return None
+    if len(set(y)) >= 2:
+        # SVM needs at least 2 different students to train
+        clf = SVC(kernel="linear", probability=True, class_weight="balanced")
+        try:
+            clf.fit(X, y)
+        except ValueError as e:
+            print(f"[face_pipeline] Classifier training failed: {e}")
+            return None
+    else:
+        # Only 1 student — skip SVM, distance check handles recognition
+        print("[face_pipeline] Only 1 student in DB — skipping SVM, using distance matching only.")
 
     return {"clf": clf, "X": X, "y": y}
 
@@ -89,7 +95,7 @@ def train_classifier():
 
 
 # ---------------------------------------------------------------------------
-# Attendance prediction
+# Helpers
 # ---------------------------------------------------------------------------
 
 def _best_match_distance(
@@ -101,6 +107,9 @@ def _best_match_distance(
     """
     Return the smallest L2 distance between `encoding` and any stored
     embedding that belongs to `predicted_id`.
+
+    Checks ALL embeddings for that student, not just the first one,
+    so students with multiple stored embeddings are handled correctly.
     """
     candidate_embeddings = [
         np.array(X_train[i])
@@ -115,15 +124,19 @@ def _best_match_distance(
     return min(distances)
 
 
+# ---------------------------------------------------------------------------
+# Attendance prediction
+# ---------------------------------------------------------------------------
+
 def predict_attendance(class_image_np):
     """
     Returns:
         detected_student  dict   {student_id: True} for confirmed matches
         all_students      list   all student IDs known to the model
         num_faces         int    number of faces found in the image
-        best_match_score  float  lowest distance score seen — use this to
-                                 decide if an unrecognized face is truly new
-                                 or just a poor match of a known person
+        best_match_score  float  lowest distance score seen — use this in
+                                 the login screen to decide if an unrecognized
+                                 face is truly new or just a poor lighting match
     """
     detected_student = {}
     best_match_score = float("inf")
@@ -136,7 +149,7 @@ def predict_attendance(class_image_np):
     if not model_data:
         return detected_student, [], num_faces, best_match_score
 
-    clf = model_data["clf"]
+    clf = model_data["clf"]       # None when only 1 student in DB
     X_train = model_data["X"]
     y_train = model_data["y"]
 
@@ -145,11 +158,12 @@ def predict_attendance(class_image_np):
     for encoding in encodings:
         encoding_np = np.array(encoding)
 
-        if len(all_students) >= 2:
+        if clf is not None and len(all_students) >= 2:
+            # Normal path — SVM picks the most likely student
             predicted_id = int(clf.predict([encoding_np])[0])
         else:
-            # Only one student enrolled — still verify by distance,
-            # don't blindly mark every face as that student
+            # Only 1 student in DB — assign directly, distance
+            # check below still verifies it's actually them
             predicted_id = int(all_students[0])
 
         score = _best_match_distance(X_train, y_train, predicted_id, encoding_np)

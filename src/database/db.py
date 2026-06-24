@@ -227,3 +227,8 @@ def create_attendance(logs: list):
     except Exception as e:
         print(f"[db] create_attendance error: {e}")
         return None
+    
+    
+def get_attendance_for_teacher(teacher_id):
+    responce=supabase.table("attendance_logs").select("*,subjects!inner(*)").eq("subjects.teacher_id",teacher_id).execute()
+    return responce.data;    

@@ -1,3 +1,4 @@
+streamlit
 # for the calculation and handal the table data 
 numpy 
 pandas 
@@ -16,7 +17,6 @@ segno
 
 # handling with the image 
 pillow
-streamlit
 
 # to hash the password
 bcrypt

@@ -12,7 +12,7 @@ def footer_home():
             font-weight:900;
             margin-top:2rem;
         ">
-            <span>Created by ❤️ and ....</span>
+            <span>Created by ❤️ and Ankur</span>
             
         </div>
     """, unsafe_allow_html=True)
@@ -29,7 +29,7 @@ def footer_dashbord():
             margin-top:1rem;
             font-weight:900;
         ">
-            <span style="color:black;font-weight:bold;">Created by ❤️ and ....</span>
+            <span style="color:black;font-weight:bold;">Created by ❤️ and Ankur</span>
             
         </div>
     """, unsafe_allow_html=True)
