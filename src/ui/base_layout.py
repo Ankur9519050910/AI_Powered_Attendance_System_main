@@ -216,6 +216,11 @@ def base_layout():
             min-height: 52px !important;
         }
 
+        .stSelectbox div[data-baseweb="select"] > div,
+        .stSelectbox div[data-baseweb="select"] > div * {
+            color: #1e293b !important;
+        }
+
         /* ── Text area ── */
         .stTextArea textarea {
             border-radius: 14px !important;
@@ -403,7 +408,6 @@ def base_layout():
         button[kind="tertiary"]:hover {
             box-shadow: 0 8px 24px rgba(0,0,0,0.35) !important;
         }
-
 
         </style>
     """, unsafe_allow_html=True)
