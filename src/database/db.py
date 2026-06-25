@@ -2,9 +2,8 @@ import bcrypt
 from src.database.config import supabase
 
 
- 
 # Password utilities
- 
+
 
 def hash_password(pwd: str) -> str:
     """Hash a plaintext password using bcrypt."""
@@ -16,9 +15,8 @@ def verify_password(pwd: str, hashed: str) -> bool:
     return bcrypt.checkpw(pwd.encode(), hashed.encode())
 
 
- 
 # Teacher
- 
+
 
 def check_teacher_exist(username: str) -> bool:
     try:
@@ -65,9 +63,8 @@ def teacher_login(username: str, password: str):
     return None
 
 
- 
 # Student
- 
+
 
 def get_all_students():
     try:
@@ -92,9 +89,8 @@ def create_student(name: str, face_emb, voice_emb):
         return None
 
 
- 
 # Subjects
- 
+
 
 def create_subject(sub_code: str, sub_name: str, section: str, teacher_id: int):
     try:
@@ -129,12 +125,17 @@ def get_teacher_subjects(teacher_id: int):
                 else 0
             )
 
-            # Count unique class sessions by DATE only (not full timestamp),
-            # so multiple logs within the same session aren't double-counted
-            
+            # Count unique attendance *runs* (one run = one Run Face Analysis /
+            # Use Voice Attendance click). Each run writes all its logs with the
+            # SAME full timestamp (see current_timestamp in
+            # teacher_tab_take_attendance), so counting distinct full
+            # timestamps == counting distinct attendance-taking events.
+            # (Previously this sliced to [:10], which collapsed everything
+            # down to distinct calendar DATES instead of distinct runs.)
+
             attendance = sub.get("attendance_logs", [])
             unique_sessions = len(
-                set(log["timestamp"][:10] for log in attendance if log.get("timestamp"))
+                set(log["timestamp"] for log in attendance if log.get("timestamp"))
             )
             sub["total_classes"] = unique_sessions
 
@@ -147,9 +148,8 @@ def get_teacher_subjects(teacher_id: int):
         return []
 
 
- 
 # Enrollment
- 
+
 
 def enroll_student_to_subject(student_id: int, subject_id: int):
     try:
@@ -202,9 +202,8 @@ def get_student_subject(student_id: int):
         return []
 
 
- 
 # Attendance
- 
+
 
 def get_student_attendance(student_id: int):
     try:
@@ -227,8 +226,8 @@ def create_attendance(logs: list):
     except Exception as e:
         print(f"[db] create_attendance error: {e}")
         return None
-    
-    
+
+
 def get_attendance_for_teacher(teacher_id):
-    responce=supabase.table("attendance_logs").select("*,subjects!inner(*)").eq("subjects.teacher_id",teacher_id).execute()
-    return responce.data;    
+    responce = supabase.table("attendance_logs").select("*,subjects!inner(*)").eq("subjects.teacher_id", teacher_id).execute()
+    return responce.data

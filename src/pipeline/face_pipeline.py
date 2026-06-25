@@ -9,9 +9,9 @@ from src.database.db import get_all_students
 RESEMBLANCE_THRESHOLD = 0.6
 
 
-# ---------------------------------------------------------------------------
+  
 # Model loading
-# ---------------------------------------------------------------------------
+  
 
 @st.cache_resource  # Runs only once — loading dlib models is expensive
 def load_dlib_models():
@@ -28,9 +28,9 @@ def load_dlib_models():
     return detector, sp, facerec
 
 
-# ---------------------------------------------------------------------------
+  
 # Face embedding
-# ---------------------------------------------------------------------------
+  
 
 def get_face_embedding(image_np):
     detector, sp, facerec = load_dlib_models()
@@ -47,9 +47,9 @@ def get_face_embedding(image_np):
     return embeddings
 
 
-# ---------------------------------------------------------------------------
+  
 # Classifier training
-# ---------------------------------------------------------------------------
+  
 
 @st.cache_resource
 def get_train_model():
@@ -73,8 +73,16 @@ def get_train_model():
     clf = None  # stays None when only 1 student exists
 
     if len(set(y)) >= 2:
-        # SVM needs at least 2 different students to train
-        clf = SVC(kernel="linear", probability=True, class_weight="balanced")
+        # SVM needs at least 2 different students to train.
+        # NOTE: probability=True intentionally removed — predict_proba()/
+        # decision_function() are never used anywhere in this pipeline,
+        # only .predict() is. Confidence/acceptance is instead handled by
+        # the separate L2 distance check (_best_match_distance vs
+        # RESEMBLANCE_THRESHOLD) below. Dropping probability=True avoids
+        # the unnecessary internal cross-validation SVC does to fit
+        # Platt scaling, with no change in prediction behavior, and
+        # resolves the sklearn deprecation warning for this parameter.
+        clf = SVC(kernel="linear", class_weight="balanced")
         try:
             clf.fit(X, y)
         except ValueError as e:
@@ -94,9 +102,9 @@ def train_classifier():
     return bool(model_data)
 
 
-# ---------------------------------------------------------------------------
+  
 # Helpers
-# ---------------------------------------------------------------------------
+  
 
 def _best_match_distance(
     X_train: list,
@@ -124,9 +132,9 @@ def _best_match_distance(
     return min(distances)
 
 
-# ---------------------------------------------------------------------------
+  
 # Attendance prediction
-# ---------------------------------------------------------------------------
+  
 
 def predict_attendance(class_image_np):
     """
