@@ -24,9 +24,9 @@ from src.pipeline.face_pipeline import predict_attendance
 from src.components.attendance_result_dialog import attendance_result_dialog
 
 from src.components.voice_dialog import voice_attendance_dialog
-  
+
 # Entry point
-  
+
 
 def teacher_screen():
     base_layout_dashbord()
@@ -44,9 +44,8 @@ def teacher_screen():
             teacher_screen_register()
 
 
-  
 # Dashboard
-  
+
 
 def teacher_dashboard():
     teacher_data = st.session_state.teacher_data
@@ -98,9 +97,8 @@ def teacher_dashboard():
     footer_dashbord()
 
 
-  
 # Tab: Take Attendance
-  
+
 
 def teacher_tab_take_attendance():
     teacher_id = st.session_state.teacher_data.get("teacher_id")
@@ -127,7 +125,15 @@ def teacher_tab_take_attendance():
         )
     with col2:
         if st.button("Add Photos", icon=":material/image:", width="stretch"):
-            add_photos_dialog()
+            st.session_state.show_add_photo_dialog = True
+
+    # Call the dialog unconditionally based on state — NOT only inside the button's
+    # own click branch. @st.dialog needs to be invoked on every rerun while it
+    # should stay open, otherwise any st.rerun() fired *inside* the dialog
+    # (e.g. switching Camera/Upload tabs) will cause Streamlit to close it,
+    # since the dialog function call itself was skipped on that rerun.
+    if st.session_state.get("show_add_photo_dialog"):
+        add_photos_dialog()
 
     selected_subject_id = subject_options[selected_subject_label]
 
@@ -211,6 +217,7 @@ def teacher_tab_take_attendance():
                             "is_present": bool(is_present),
                         })
 
+                    st.session_state.show_add_photo_dialog = False
                     attendance_result_dialog(pd.DataFrame(results), attendance_to_log)
 
     with c3:
@@ -220,12 +227,12 @@ def teacher_tab_take_attendance():
             width="stretch",
             icon=":material/mic:",
         ):
+            st.session_state.show_add_photo_dialog = False
             voice_attendance_dialog(selected_subject_id)
 
 
-  
 # Tab: Manage Subjects
-  
+
 
 def teacher_tab_manage_subjects():
     teacher_id = st.session_state.teacher_data["teacher_id"]
@@ -269,15 +276,14 @@ def teacher_tab_manage_subjects():
         st.info("No subjects found. Create one above.")
 
 
-  
 # Tab: Attendance Records
-  
+
 
 def teacher_tab_attendance_records():
     st.header("Attendance Records")
-   
-    teacher_id=st.session_state.teacher_data['teacher_id']
-    record=get_attendance_for_teacher(teacher_id)
+
+    teacher_id = st.session_state.teacher_data['teacher_id']
+    record = get_attendance_for_teacher(teacher_id)
     # st.write(record)  # DEBUG
     if not record:
         return
@@ -304,10 +310,10 @@ def teacher_tab_attendance_records():
         )
         .reset_index()
     )
-    
+
     summary['Attendance Stats'] = (
-    "✅ " + summary['Present_Count'].astype(str) + "/" +
-    summary['Total_Count'].astype(str) + " Students"
+        "✅ " + summary['Present_Count'].astype(str) + "/" +
+        summary['Total_Count'].astype(str) + " Students"
     )
 
     display_df = (
@@ -322,9 +328,8 @@ def teacher_tab_attendance_records():
     )
 
 
-  
 # Auth helpers
-  
+
 
 def register_teacher(teacher_username, teacher_name, teacher_pass, teacher_pass_confirm):
     if not teacher_name or not teacher_username or not teacher_pass:
@@ -358,9 +363,8 @@ def login_teacher(username, password):
     return False
 
 
-  
 # Login screen
-  
+
 
 def teacher_screen_login():
     c1, c2 = st.columns(2, gap="xxlarge", vertical_alignment="center")
@@ -398,9 +402,8 @@ def teacher_screen_login():
     footer_dashbord()
 
 
-  
 # Registration screen
-  
+
 
 def teacher_screen_register():
     c1, c2 = st.columns(2, gap="xxlarge", vertical_alignment="center")

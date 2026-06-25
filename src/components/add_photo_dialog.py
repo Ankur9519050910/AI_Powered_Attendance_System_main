@@ -36,7 +36,6 @@ def add_photos_dialog():
             st.rerun()
 
     # CAMERA TAB
-
     if st.session_state.photo_tab == "camera":
 
         cam_photo = st.camera_input("Take Snapshot", key="dialog_cam")
@@ -49,9 +48,7 @@ def add_photos_dialog():
                 st.toast("Photo captured!")
                 st.rerun()
 
-   
     # UPLOAD TAB
-   
     elif st.session_state.photo_tab == "upload":
 
         upload_files = st.file_uploader(
@@ -72,9 +69,9 @@ def add_photos_dialog():
 
     st.write(f"Photos Added: {len(st.session_state.attendance_images)}")
 
+    # This must match the flag checked in teacher_tab_take_attendance(),
+    # otherwise closing here won't actually prevent the dialog from
+    # being re-invoked on the next rerun.
     if st.button("Done", type="primary", width="stretch"):
-        
-        # Clean up dialog-specific state before closing
-        
-        st.session_state.pop("photo_tab", None)
+        st.session_state.show_add_photo_dialog = False
         st.rerun()
