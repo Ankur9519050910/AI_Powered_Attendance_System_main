@@ -1,9 +1,13 @@
 import time
+from zoneinfo import ZoneInfo
 
 import streamlit as st
 import numpy as np
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
+IST = ZoneInfo("Asia/Kolkata")
 
 from src.ui.base_layout import base_layout_dashbord, base_layout
 from src.components.header import header_dashbord
@@ -24,6 +28,8 @@ from src.pipeline.face_pipeline import predict_attendance
 from src.components.attendance_result_dialog import attendance_result_dialog
 
 from src.components.voice_dialog import voice_attendance_dialog
+
+IST = ZoneInfo("Asia/Kolkata")
 
 # Entry point
 
@@ -196,7 +202,7 @@ def teacher_tab_take_attendance():
                 else:
                     results = []
                     attendance_to_log = []
-                    current_timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+                    current_timestamp = datetime.now(ZoneInfo("UTC")).strftime("%Y-%m-%dT%H:%M:%S%z")
 
                     for node in enrolled_students:
                         student = node["student"]
@@ -292,9 +298,21 @@ def teacher_tab_attendance_records():
     for r in record:
         ts = r.get('timestamp')
 
+        display_time = "N/A"
+        if ts:
+            try:
+                parsed = datetime.fromisoformat(ts)
+                # Legacy rows written before this fix may lack tz info.
+                # Treat those as UTC (matches old behavior) before converting.
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=ZoneInfo("UTC"))
+                display_time = parsed.astimezone(IST).strftime("%Y-%m-%d %I:%M %p")
+            except ValueError:
+                display_time = "N/A"
+
         data.append({
             "ts_group": ts.split(".")[0] if ts else None,
-            "Time": datetime.fromisoformat(ts).strftime("%Y-%m-%d %I:%M %p") if ts else "N/A",
+            "Time": display_time,
             "Subject": r['subjects']['name'],
             "Subject Code": r['subjects']['subject_code'],
             "is_present": bool(r.get('is_present', False))
