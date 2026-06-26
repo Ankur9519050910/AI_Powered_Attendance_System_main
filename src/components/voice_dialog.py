@@ -1,4 +1,5 @@
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
@@ -69,8 +70,10 @@ def voice_attendance_dialog(selected_subject_id):
             results = []
             attendance_to_log = []
 
-            current_timestamp = datetime.now().strftime(
-                "%Y-%m-%dT%H:%M:%S"
+            # Explicit UTC, consistent with the face-attendance write path
+            # and with how Supabase's timestamptz column stores values.
+            current_timestamp = datetime.now(ZoneInfo("UTC")).strftime(
+                "%Y-%m-%dT%H:%M:%S%z"
             )
 
             for node in enrolled_students:
@@ -113,7 +116,23 @@ def voice_attendance_dialog(selected_subject_id):
                 attendance_to_log,
             )
 
-    # Show attendance result after analysis
+            # IMPORTANT: @st.dialog only allows one dialog open at a time.
+            # show_attendance_result() below is ALSO an @st.dialog. Calling
+            # it while this voice_attendance_dialog is still considered
+            # "open" causes:
+            #   StreamlitAPIException: Only one dialog is allowed to be
+            #   opened at the same time.
+            # We close this dialog's own trigger flag here, right before
+            # st.rerun(), so that on the next script run only
+            # show_attendance_result() requests to open — not both.
+            st.session_state.show_voice_attendance_dialog = False
+            st.rerun()
+
+    # Show attendance result after analysis.
+    # This branch only matters on the rerun right after the flag above
+    # was cleared — at that point voice_attendance_dialog() itself is no
+    # longer invoked from teacher_screen.py, so this dialog body never
+    # runs again, and show_attendance_result() opens cleanly on its own.
     if st.session_state.get("voice_attendance_record") is not None:
         df_result, logs = st.session_state.voice_attendance_record
         show_attendance_result(df_result, logs)
