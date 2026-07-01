@@ -11,8 +11,6 @@ RESEMBLANCE_THRESHOLD = 0.6
 
   
 # Model loading
-  
-
 @st.cache_resource  # Runs only once — loading dlib models is expensive
 def load_dlib_models():
     detector = dlib.get_frontal_face_detector()
@@ -72,6 +70,14 @@ def get_train_model():
 
     if len(set(y)) >= 2:
         # SVM needs at least 2 different students to train.
+        # NOTE: probability=True intentionally removed — predict_proba()/
+        # decision_function() are never used anywhere in this pipeline,
+        # only .predict() is. Confidence/acceptance is instead handled by
+        # the separate L2 distance check (_best_match_distance vs
+        # RESEMBLANCE_THRESHOLD) below. Dropping probability=True avoids
+        # the unnecessary internal cross-validation SVC does to fit
+        # Platt scaling, with no change in prediction behavior, and
+        # resolves the sklearn deprecation warning for this parameter.
         clf = SVC(kernel="linear", class_weight="balanced")
         try:
             clf.fit(X, y)
