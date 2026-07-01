@@ -18,7 +18,7 @@ from src.pipeline.face_pipeline import predict_attendance, get_face_embedding, t
 from src.pipeline.voice_pipeline import get_voice_embedding
 from src.components.enroll_dialog import enroll_dialog
 from src.components.subjects_cards import subject_card
-
+from src.components.session_manager import save_session,clear_session
 
   
 # Dashboard (shown after login)
@@ -40,6 +40,7 @@ def student_dashboard():
         if st.button("Logout", shortcut="control+backspace"):
             st.session_state["is_logged_in"] = False
             del st.session_state.student_data
+            clear_session() 
             st.rerun()
 
     st.space()
@@ -169,6 +170,7 @@ def student_login_screen():
                         st.session_state.show_registration = False
                         st.toast(f"Welcome back, {student['name']}!")
                         time.sleep(1)
+                        save_session()
                         st.rerun()
                     else:
                         st.error("Student record not found. Please contact support.")
@@ -236,6 +238,7 @@ def student_login_screen():
                                 st.session_state.student_data = new_student
                                 st.session_state.show_registration = False
                                 st.toast(f"Profile created! Hi, {new_name}!")
+                                save_session()
                                 time.sleep(1)
                                 st.rerun()
                             else:
