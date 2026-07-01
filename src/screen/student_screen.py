@@ -19,7 +19,7 @@ from src.pipeline.voice_pipeline import get_voice_embedding
 from src.components.enroll_dialog import enroll_dialog
 from src.components.subjects_cards import subject_card
 from src.components.session_manager import save_session,clear_session
-
+from src.components.unenroll_dialog import unenroll_dialog
   
 # Dashboard (shown after login)
   
@@ -75,7 +75,7 @@ def student_dashboard():
         sid = sub["subject_id"]
         stats = stats_map.get(sid, {"total": 0, "attended": 0})
 
-        def make_unenroll_btn(subject_id, subject_name):
+        def make_unenroll_btn(subject_id, subject_name, subject_code):
             def enroll_btn():
                 if st.button(
                     "Unenroll from this Program",
@@ -84,10 +84,12 @@ def student_dashboard():
                     width="stretch",
                     key=f"unenroll_{subject_id}",
                 ):
-                    unroll_student_to_subject(student_id, subject_id)
-                    st.toast(f"Unenrolled from {subject_name} successfully!")
-                    time.sleep(1)
-                    st.rerun()
+                    st.session_state.show_unenroll_dialog = True
+                    st.session_state.unenroll_target = {
+                        "subject_id": subject_id,
+                        "subject_name": subject_name,
+                        "subject_code": subject_code,
+                    }
             return enroll_btn
 
         with cols[i % 2]:
@@ -99,9 +101,16 @@ def student_dashboard():
                     ("📅", "Total", stats["total"]),
                     ("✅", "Attended", stats["attended"]),
                 ],
-                footer_callback=make_unenroll_btn(sid, sub["name"]),
+                footer_callback=make_unenroll_btn(sid, sub["name"], sub["subject_code"]),
             )
-
+    if st.session_state.get("show_unenroll_dialog"):
+        target = st.session_state.get("unenroll_target", {})
+        unenroll_dialog(
+            student_id=student_id,
+            subject_id=target["subject_id"],
+            subject_name=target["subject_name"],
+            subject_code=target["subject_code"],
+        )
     footer_dashbord()
 
 
