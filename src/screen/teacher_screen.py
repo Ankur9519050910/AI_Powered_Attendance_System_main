@@ -237,10 +237,6 @@ def teacher_tab_take_attendance():
             st.session_state.show_add_photo_dialog = False
             st.session_state.show_voice_attendance_dialog = True
 
-    # Same reasoning as the Add Photos dialog above: call unconditionally
-    # based on state so it survives the rerun triggered by "Analyze Audio"
-    # inside the dialog, instead of only being callable on the exact
-    # rerun where this button was clicked.
     if st.session_state.get("show_voice_attendance_dialog"):
         voice_attendance_dialog(selected_subject_id)
 

@@ -33,13 +33,6 @@ def show_attendance_result(df, logs):
 
 
 def _reset_attendance_state():
-    """
-    Clear all attendance-flow session state, including the dialog-open
-    flags for both the photo and voice paths. Without this, a flag like
-    show_voice_attendance_dialog could remain True after this result
-    dialog closes, causing voice_attendance_dialog() to immediately try
-    to reopen on the next rerun.
-    """
     st.session_state.voice_attendance_record = None
     st.session_state.attendance_images = []
     st.session_state.show_add_photo_dialog = False

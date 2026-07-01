@@ -68,10 +68,6 @@ def add_photos_dialog():
     st.divider()
 
     st.write(f"Photos Added: {len(st.session_state.attendance_images)}")
-
-    # This must match the flag checked in teacher_tab_take_attendance(),
-    # otherwise closing here won't actually prevent the dialog from
-    # being re-invoked on the next rerun.
     if st.button("Done", type="primary", width="stretch"):
         st.session_state.show_add_photo_dialog = False
         st.rerun()

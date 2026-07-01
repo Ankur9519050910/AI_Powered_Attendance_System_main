@@ -125,13 +125,6 @@ def get_teacher_subjects(teacher_id: int):
                 else 0
             )
 
-            # Count unique attendance *runs* (one run = one Run Face Analysis /
-            # Use Voice Attendance click). Each run writes all its logs with the
-            # SAME full timestamp (see current_timestamp in
-            # teacher_tab_take_attendance), so counting distinct full
-            # timestamps == counting distinct attendance-taking events.
-            # (Previously this sliced to [:10], which collapsed everything
-            # down to distinct calendar DATES instead of distinct runs.)
 
             attendance = sub.get("attendance_logs", [])
             unique_sessions = len(

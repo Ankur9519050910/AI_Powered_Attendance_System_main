@@ -229,9 +229,6 @@ def student_login_screen():
                                 train_classifier()
 
                                 # IMPORTANT: use response[0] directly from the DB
-                                # instead of running face recognition again.
-                                # This guarantees the correct student profile is
-                                # loaded even before the new model is fully cached.
                                 new_student = response[0]
 
                                 st.session_state.is_logged_in = True
