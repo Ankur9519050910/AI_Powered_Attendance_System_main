@@ -22,6 +22,8 @@ from src.database.db import (
 from src.components.subjects_cards import subject_card
 from src.components.share_subject_dialog import share_subject_dialog
 from src.components.create_subject_dialog import create_subject_dialog
+from src.components.edit_subject_dialog import edit_subject_dialog
+from src.components.delete_subject_dialog import delete_subject_dialog
 from src.components.add_photo_dialog import add_photos_dialog
 from src.database.config import supabase
 from src.pipeline.face_pipeline import predict_attendance
@@ -237,6 +239,10 @@ def teacher_tab_take_attendance():
             st.session_state.show_add_photo_dialog = False
             st.session_state.show_voice_attendance_dialog = True
 
+    # Same reasoning as the Add Photos dialog above: call unconditionally
+    # based on state so it survives the rerun triggered by "Analyze Audio"
+    # inside the dialog, instead of only being callable on the exact
+    # rerun where this button was clicked.
     if st.session_state.get("show_voice_attendance_dialog"):
         voice_attendance_dialog(selected_subject_id)
 
@@ -263,16 +269,34 @@ def teacher_tab_manage_subjects():
                 ("⏰", "Classes", sub["total_classes"]),
             ]
 
-            def make_share_btn(subject):
-                def share_btn():
-                    if st.button(
-                        f"Share Code: {subject['name']}",
-                        key=f"share_{subject['subject_code']}",
-                        icon=":material/share:",
-                        width="stretch",
-                    ):
-                        share_subject_dialog(subject["name"], subject["subject_code"])
-                return share_btn
+            def make_footer_btns(subject):
+                def footer_btns():
+                    col_share, col_edit = st.columns(2)
+
+                    with col_share:
+                        if st.button(
+                            f"Share Code: {subject['name']}",
+                            key=f"share_{subject['subject_code']}",
+                            icon=":material/share:",
+                            width="stretch",
+                        ):
+                            share_subject_dialog(subject["name"], subject["subject_code"])
+
+                    with col_edit:
+                        if st.button(
+                            "Edit / Manage",
+                            key=f"edit_{subject['subject_code']}",
+                            icon=":material/edit:",
+                            width="stretch",
+                            type="secondary",
+                        ):
+                            # Store the full subject dict so the dialog
+                            # has everything it needs (id, name, code,
+                            # section, total_students for safe-delete check)
+                            st.session_state.show_edit_subject_dialog = True
+                            st.session_state.edit_subject_target = subject
+
+                return footer_btns
 
             st.space()
             subject_card(
@@ -280,8 +304,14 @@ def teacher_tab_manage_subjects():
                 code=sub["subject_code"],
                 section=sub["section"],
                 stats=stats,
-                footer_callback=make_share_btn(sub),
+                footer_callback=make_footer_btns(sub),
             )
+
+        # State-based dialog call — same pattern as all other dialogs in this app
+        if st.session_state.get("show_edit_subject_dialog"):
+            target = st.session_state.get("edit_subject_target", {})
+            edit_subject_dialog(target)
+
     else:
         st.info("No subjects found. Create one above.")
 

@@ -92,6 +92,51 @@ def create_student(name: str, face_emb, voice_emb):
 # Subjects
 
 
+def delete_subject(subject_id: int):
+    
+    # we are going to delete the subject when not student is enrolled in tht subject 
+    
+    """
+    Safe-mode delete: only removes the subject if NO students are enrolled.
+    Returns (True, None) on success, (False, reason_string) on failure.
+    """
+    
+    try:
+        enrolled = (
+            supabase.table("subject_student")
+            .select("student_id", count="exact")
+            .eq("subject_id", subject_id)
+            .execute()
+        )
+        count = enrolled.count if enrolled.count is not None else len(enrolled.data)
+
+        if count > 0:
+            return False, f"Cannot delete — {count} student(s) are still enrolled. Ask them to unenroll first."
+
+        # Clean up any orphaned attendance logs before removing subject
+        supabase.table("attendance_logs").delete().eq("subject_id", subject_id).execute()
+        supabase.table("subjects").delete().eq("subject_id", subject_id).execute()
+        return True, None
+
+    except Exception as e:
+        print(f"[db] delete_subject error: {e}")
+        return False, str(e)
+
+
+def update_subject(subject_id: int, name: str, subject_code: str, section: str):
+    """Update subject name, code, and section."""
+    try:
+        supabase.table("subjects").update({
+            "name": name,
+            "subject_code": subject_code,
+            "section": section,
+        }).eq("subject_id", subject_id).execute()
+        return True
+    except Exception as e:
+        print(f"[db] update_subject error: {e}")
+        return False
+
+
 def create_subject(sub_code: str, sub_name: str, section: str, teacher_id: int):
     try:
         data = {
@@ -125,6 +170,13 @@ def get_teacher_subjects(teacher_id: int):
                 else 0
             )
 
+            # Count unique attendance *runs* (one run = one Run Face Analysis /
+            # Use Voice Attendance click). Each run writes all its logs with the
+            # SAME full timestamp (see current_timestamp in
+            # teacher_tab_take_attendance), so counting distinct full
+            # timestamps == counting distinct attendance-taking events.
+            # (Previously this sliced to [:10], which collapsed everything
+            # down to distinct calendar DATES instead of distinct runs.)
 
             attendance = sub.get("attendance_logs", [])
             unique_sessions = len(
