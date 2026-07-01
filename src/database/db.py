@@ -93,31 +93,17 @@ def create_student(name: str, face_emb, voice_emb):
 
 
 def delete_subject(subject_id: int):
-    
-    # we are going to delete the subject when not student is enrolled in tht subject 
-    
     """
-    Safe-mode delete: only removes the subject if NO students are enrolled.
+    Full delete: removes the subject, all enrollments, and all attendance
+    logs regardless of how many students are enrolled.
     Returns (True, None) on success, (False, reason_string) on failure.
     """
-    
     try:
-        enrolled = (
-            supabase.table("subject_student")
-            .select("student_id", count="exact")
-            .eq("subject_id", subject_id)
-            .execute()
-        )
-        count = enrolled.count if enrolled.count is not None else len(enrolled.data)
-
-        if count > 0:
-            return False, f"Cannot delete — {count} student(s) are still enrolled. Ask them to unenroll first."
-
-        # Clean up any orphaned attendance logs before removing subject
+        # Delete in correct FK order: logs first, then enrollments, then subject
         supabase.table("attendance_logs").delete().eq("subject_id", subject_id).execute()
+        supabase.table("subject_student").delete().eq("subject_id", subject_id).execute()
         supabase.table("subjects").delete().eq("subject_id", subject_id).execute()
         return True, None
-
     except Exception as e:
         print(f"[db] delete_subject error: {e}")
         return False, str(e)
