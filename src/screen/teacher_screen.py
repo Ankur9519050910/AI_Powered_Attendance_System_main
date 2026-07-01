@@ -34,7 +34,6 @@ IST = ZoneInfo("Asia/Kolkata")
 
 # Entry point
 
-
 def teacher_screen():
     base_layout_dashbord()
     base_layout()
@@ -139,6 +138,8 @@ def teacher_tab_take_attendance():
     # should stay open, otherwise any st.rerun() fired *inside* the dialog
     # (e.g. switching Camera/Upload tabs) will cause Streamlit to close it,
     # since the dialog function call itself was skipped on that rerun.
+    
+    
     if st.session_state.get("show_add_photo_dialog"):
         add_photos_dialog()
 
@@ -238,17 +239,11 @@ def teacher_tab_take_attendance():
             st.session_state.show_add_photo_dialog = False
             st.session_state.show_voice_attendance_dialog = True
 
-    # Same reasoning as the Add Photos dialog above: call unconditionally
-    # based on state so it survives the rerun triggered by "Analyze Audio"
-    # inside the dialog, instead of only being callable on the exact
-    # rerun where this button was clicked.
     if st.session_state.get("show_voice_attendance_dialog"):
         voice_attendance_dialog(selected_subject_id)
 
 
 # Tab: Manage Subjects
-
-
 def teacher_tab_manage_subjects():
     teacher_id = st.session_state.teacher_data["teacher_id"]
 
@@ -307,15 +302,6 @@ def teacher_tab_manage_subjects():
         # State-based dialog call — same pattern as all other dialogs in this app
         if st.session_state.get("show_edit_subject_dialog"):
             target = st.session_state.get("edit_subject_target", {})
-            # Clear the flag BEFORE calling the dialog.
-            # This means: the dialog is invoked exactly once per button click.
-            # If the user closes it via X, the flag is already False on the
-            # next rerun so it won't reopen. Internal tab-switch reruns
-            # (Edit/Delete tabs inside the dialog) don't re-trigger this
-            # block since the flag is already cleared — Streamlit keeps the
-            # dialog open on its own as long as the decorated function keeps
-            # being called via st.rerun() from INSIDE the dialog itself.
-            st.session_state.show_edit_subject_dialog = False
             edit_subject_dialog(target)
 
     else:

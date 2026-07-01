@@ -26,7 +26,7 @@ def edit_subject_dialog(subject):
     if "edit_subject_tab" not in st.session_state:
         st.session_state.edit_subject_tab = "edit"
 
-    # ── Tab toggle ──────────────────────────────────────────────
+    # ── Tab toggle 
     c1, c2 = st.columns(2)
     with c1:
         if st.button(
@@ -47,7 +47,7 @@ def edit_subject_dialog(subject):
 
     st.divider()
 
-    # ── Edit tab ─────────────────────────────────────────────────
+    # ── Edit tab 
     if st.session_state.edit_subject_tab == "edit":
         st.write("Update the subject details below.")
 
