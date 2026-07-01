@@ -289,10 +289,8 @@ def teacher_tab_manage_subjects():
                             width="stretch",
                             type="secondary",
                         ):
-                            # Store the full subject dict so the dialog
-                            # has everything it needs (id, name, code,
-                            # section, total_students for safe-delete check)
                             st.session_state.show_edit_subject_dialog = True
+                            st.session_state._edit_dialog_just_opened = True
                             st.session_state.edit_subject_target = subject
 
                 return footer_btns
@@ -309,6 +307,15 @@ def teacher_tab_manage_subjects():
         # State-based dialog call — same pattern as all other dialogs in this app
         if st.session_state.get("show_edit_subject_dialog"):
             target = st.session_state.get("edit_subject_target", {})
+            # Clear the flag BEFORE calling the dialog.
+            # This means: the dialog is invoked exactly once per button click.
+            # If the user closes it via X, the flag is already False on the
+            # next rerun so it won't reopen. Internal tab-switch reruns
+            # (Edit/Delete tabs inside the dialog) don't re-trigger this
+            # block since the flag is already cleared — Streamlit keeps the
+            # dialog open on its own as long as the decorated function keeps
+            # being called via st.rerun() from INSIDE the dialog itself.
+            st.session_state.show_edit_subject_dialog = False
             edit_subject_dialog(target)
 
     else:
