@@ -23,7 +23,7 @@ from src.components.subjects_cards import subject_card
 from src.components.share_subject_dialog import share_subject_dialog
 from src.components.create_subject_dialog import create_subject_dialog
 from src.components.edit_subject_dialog import edit_subject_dialog
-from src.components.delete_subject_dialog import delete_subject_dialog
+from src.components.edit_subject_dialog import delete_subject_dialog
 from src.components.add_photo_dialog import add_photos_dialog
 from src.database.config import supabase
 from src.pipeline.face_pipeline import predict_attendance
